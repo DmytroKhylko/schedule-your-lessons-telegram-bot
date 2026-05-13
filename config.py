@@ -14,15 +14,12 @@ class Settings(BaseSettings):
     postgres_user: str = "schedule_bot"
     postgres_password: str = "change_me"
 
-    redis_host: str = "redis"
-    redis_port: int = 6379
-
     default_locale: str = "uk"
     default_timezone: str = "Europe/Kyiv"
     default_notification_minutes_before: int = 60
 
-    event_queue_poll_interval_seconds: float = 10.0
-    notification_schedule_days_ahead: int = 90
+    scheduler_poll_interval_seconds: float = 60.0
+    notification_lookahead_hours: int = 24
 
     @field_validator("admin_telegram_ids", mode="before")
     @classmethod
@@ -38,9 +35,5 @@ class Settings(BaseSettings):
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
 
-    @property
-    def redis_url(self) -> str:
-        return f"redis://{self.redis_host}:{self.redis_port}"
 
-
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]

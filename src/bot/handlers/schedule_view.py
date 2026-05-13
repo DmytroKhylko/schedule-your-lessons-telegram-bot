@@ -6,7 +6,6 @@ from aiogram.types import CallbackQuery
 from aiogram_i18n import I18nContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from src.bot.filters.role_filter import ActiveUserFilter, AdminFilter
 from src.bot.keyboards.common_keyboards import build_admin_main_menu, build_user_main_menu
 from src.bot.keyboards.schedule_keyboards import (
@@ -17,13 +16,10 @@ from src.bot.keyboards.schedule_keyboards import (
 from src.domain.enums import RoleType
 from src.models.schedule import Schedule
 from src.models.user import User
-from src.queue.redis_event_queue import RedisEventQueue
 from src.repositories.role_repository import RoleRepository
 from src.repositories.schedule_assignment_repository import ScheduleAssignmentRepository
 from src.repositories.schedule_repository import ScheduleRepository
-from src.repositories.scheduled_event_repository import ScheduledEventRepository
 from src.repositories.user_repository import UserRepository
-from src.services.notification_service import NotificationService
 from src.services.schedule_service import ScheduleService
 from src.services.user_service import UserService
 
@@ -71,8 +67,6 @@ async def handle_schedule_action(
     i18n: I18nContext,
     db_session: AsyncSession,
     current_user: User,
-    event_queue: RedisEventQueue,
-    settings: Settings,
 ) -> None:
     if callback_data.action == "back":
         is_admin = any(role.role_type == RoleType.ADMIN for role in current_user.roles)
@@ -115,14 +109,6 @@ async def handle_schedule_action(
 
     if callback_data.action == "cancel" and is_admin:
         await schedule_service.cancel_schedule(schedule)
-
-        event_repository = ScheduledEventRepository(db_session)
-        notification_service = NotificationService(
-            scheduled_event_repository=event_repository,
-            schedule_assignment_repository=assignment_repository,
-            event_queue=event_queue,
-        )
-        await notification_service.cancel_pending_notifications_for_schedule(schedule.id)
 
         user_repository = UserRepository(db_session)
         role_repository = RoleRepository(db_session)

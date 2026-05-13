@@ -2,11 +2,10 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram_i18n import I18nMiddleware
 from aiogram_i18n.cores import FluentRuntimeCore
 from aiogram_i18n.managers import BaseManager
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from config import settings
@@ -18,10 +17,7 @@ from src.bot.handlers import start
 from src.bot.middlewares.db_session import DbSessionMiddleware
 from src.bot.middlewares.user_context import UserContextMiddleware
 from src.models.user import User
-from src.queue.event_processor import EventProcessor
-from src.queue.event_scheduler import EventScheduler
-from src.queue.redis_event_queue import RedisEventQueue
-from src.repositories.scheduled_event_repository import ScheduledEventRepository
+from src.notifications.scheduler import ReminderScheduler
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -56,34 +52,17 @@ async def main() -> None:
     engine = create_async_engine(settings.database_url, echo=False)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
-    redis = Redis.from_url(settings.redis_url, decode_responses=True)
-    fsm_redis = Redis.from_url(settings.redis_url)
-    redis_storage = RedisStorage(fsm_redis)
-
-    async with session_factory() as session:
-        event_repository = ScheduledEventRepository(session)
-        pending_events = await event_repository.get_all_pending()
-        await session.commit()
-
-    event_queue = RedisEventQueue(redis)
-    await event_queue.load_pending_events(pending_events)
-    logger.info("Loaded %d pending events into Redis queue", len(pending_events))
-
     bot = Bot(token=settings.bot_token)
 
-    processor = EventProcessor(
-        event_queue=event_queue,
+    reminder_scheduler = ReminderScheduler(
         session_factory=session_factory,
         bot=bot,
-    )
-    scheduler = EventScheduler(
-        processor=processor,
-        poll_interval_seconds=settings.event_queue_poll_interval_seconds,
+        poll_interval_seconds=settings.scheduler_poll_interval_seconds,
+        lookahead_hours=settings.notification_lookahead_hours,
     )
 
-    dp = Dispatcher(storage=redis_storage)
+    dp = Dispatcher(storage=MemoryStorage())
     dp["settings"] = settings
-    dp["event_queue"] = event_queue
 
     i18n_middleware = I18nMiddleware(
         core=FluentRuntimeCore(path="locales/{locale}"),
@@ -103,15 +82,13 @@ async def main() -> None:
     dp.include_router(schedule_view.router)
     dp.include_router(settings_handler.router)
 
-    scheduler.start()
+    reminder_scheduler.start()
     logger.info("Bot starting")
 
     try:
         await dp.start_polling(bot)
     finally:
-        await scheduler.stop()
-        await redis.aclose()
-        await fsm_redis.aclose()
+        await reminder_scheduler.stop()
         await engine.dispose()
         logger.info("Bot stopped")
 

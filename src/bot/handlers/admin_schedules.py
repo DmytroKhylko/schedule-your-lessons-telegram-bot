@@ -1,13 +1,12 @@
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
-from aiogram import Router
+from aiogram import Bot, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from aiogram_i18n import I18nContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from src.bot.filters.role_filter import AdminFilter
 from src.bot.keyboards.admin_keyboards import (
     ParticipantDoneCallback,
@@ -33,11 +32,9 @@ from src.bot.keyboards.schedule_keyboards import (
 )
 from src.bot.states.schedule_states import ScheduleCreationStates
 from src.models.user import User
-from src.queue.redis_event_queue import RedisEventQueue
 from src.repositories.role_repository import RoleRepository
 from src.repositories.schedule_assignment_repository import ScheduleAssignmentRepository
 from src.repositories.schedule_repository import ScheduleRepository
-from src.repositories.scheduled_event_repository import ScheduledEventRepository
 from src.repositories.user_repository import UserRepository
 from src.services.notification_service import NotificationService
 from src.services.schedule_service import ScheduleService
@@ -426,8 +423,7 @@ async def handle_schedule_confirm(
     state: FSMContext,
     db_session: AsyncSession,
     current_user: User,
-    event_queue: RedisEventQueue,
-    settings: Settings,
+    bot: Bot,
 ) -> None:
     data = await state.get_data()
     await state.clear()
@@ -459,15 +455,10 @@ async def handle_schedule_confirm(
         participant_ids=data.get("selected_participant_ids", []),
     )
 
-    event_repository = ScheduledEventRepository(db_session)
-    notification_service = NotificationService(
-        scheduled_event_repository=event_repository,
-        schedule_assignment_repository=assignment_repository,
-        event_queue=event_queue,
-        days_ahead=settings.notification_schedule_days_ahead,
-    )
-
-    await notification_service.schedule_notifications_for_new_schedule(schedule)
+    notification_service = NotificationService(bot)
+    assignments = await assignment_repository.get_by_schedule_id(schedule.id)
+    for assignment in assignments:
+        await notification_service.send_new_assignment_notification(assignment.user, schedule)
 
     user_repository = UserRepository(db_session)
     role_repository = RoleRepository(db_session)
