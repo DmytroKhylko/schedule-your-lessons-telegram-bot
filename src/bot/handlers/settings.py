@@ -1,8 +1,9 @@
-from aiogram import Router
+from aiogram import Bot, Router
 from aiogram.types import CallbackQuery
 from aiogram_i18n import I18nContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.bot.commands import set_admin_commands, set_user_commands
 from src.bot.filters.role_filter import ActiveUserFilter
 from src.bot.keyboards.common_keyboards import (
     build_language_keyboard,
@@ -76,6 +77,7 @@ async def handle_language_change(
     i18n: I18nContext,
     db_session: AsyncSession,
     current_user: User,
+    bot: Bot,
 ) -> None:
     locale = callback.data.split(":")[1]
     user_repository = UserRepository(db_session)
@@ -83,6 +85,14 @@ async def handle_language_change(
     user_service = UserService(user_repository, role_repository)
     await user_service.update_language(current_user, locale)
     await i18n.set_locale(locale)
+
+    is_admin = any(role.role_type == RoleType.ADMIN for role in current_user.roles)
+    chat_id = callback.from_user.id
+    if is_admin:
+        await set_admin_commands(bot, chat_id, locale)
+    else:
+        await set_user_commands(bot, chat_id, locale)
+
     await callback.message.edit_text(i18n.get("settings-language-changed"))
     await callback.answer()
 

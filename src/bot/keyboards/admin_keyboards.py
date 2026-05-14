@@ -1,3 +1,5 @@
+from typing import Protocol
+
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -5,6 +7,10 @@ from aiogram_i18n import I18nContext
 
 from src.domain.enums import RoleType
 from src.models.user import User
+
+
+class Translator(Protocol):
+    def __call__(self, key: str, **kwargs: str) -> str: ...
 
 
 class AdminUserApprovalCallback(CallbackData, prefix="admin_approve"):
@@ -21,19 +27,19 @@ class ParticipantDoneCallback(CallbackData, prefix="part_done"):
 
 
 def build_user_approval_keyboard(
-    target_user_id: int, i18n: I18nContext
+    target_user_id: int, i18n: Translator,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=i18n.get("btn-approve-user"),
+        text=i18n("btn-approve-user"),
         callback_data=AdminUserApprovalCallback(action="user", target_user_id=target_user_id),
     )
     builder.button(
-        text=i18n.get("btn-approve-teacher"),
+        text=i18n("btn-approve-teacher"),
         callback_data=AdminUserApprovalCallback(action="teacher", target_user_id=target_user_id),
     )
     builder.button(
-        text=i18n.get("btn-reject"),
+        text=i18n("btn-reject"),
         callback_data=AdminUserApprovalCallback(action="reject", target_user_id=target_user_id),
     )
     builder.adjust(2, 1)

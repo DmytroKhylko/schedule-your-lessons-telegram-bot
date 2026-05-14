@@ -7,12 +7,12 @@ from fluent.runtime import FluentBundle, FluentResource
 from src.models.schedule import Schedule
 from src.models.user import User
 
-_bundles: dict[str, FluentBundle] = {}
+bundles: dict[str, FluentBundle] = {}
 
 
-def _load_bundle(locale: str) -> FluentBundle:
-    if locale in _bundles:
-        return _bundles[locale]
+def load_bundle(locale: str) -> FluentBundle:
+    if locale in bundles:
+        return bundles[locale]
 
     bundle = FluentBundle([locale])
     try:
@@ -24,15 +24,15 @@ def _load_bundle(locale: str) -> FluentBundle:
             resource = FluentResource(f.read())
         bundle.add_resource(resource)
 
-    _bundles[locale] = bundle
+    bundles[locale] = bundle
     return bundle
 
 
-def _get_translated_text(locale: str, message_id: str, **kwargs: str) -> str:
-    bundle = _load_bundle(locale)
+def get_translated_text(locale: str, message_id: str, **kwargs: str) -> str:
+    bundle = load_bundle(locale)
     message = bundle.get_message(message_id)
     if not message or not message.value:
-        bundle = _load_bundle("en")
+        bundle = load_bundle("en")
         message = bundle.get_message(message_id)
     if not message or not message.value:
         return message_id
@@ -54,10 +54,10 @@ async def send_lesson_reminder(
     subject = schedule.subject or ""
     location = schedule.location or ""
 
-    subject_line = _get_translated_text(locale, "notification-subject-line", subject=subject) if subject else ""
-    location_line = _get_translated_text(locale, "notification-location-line", location=location) if location else ""
+    subject_line = get_translated_text(locale, "notification-subject-line", subject=subject) if subject else ""
+    location_line = get_translated_text(locale, "notification-location-line", location=location) if location else ""
 
-    text = _get_translated_text(
+    text = get_translated_text(
         locale,
         "lesson-reminder",
         title=schedule.title,
@@ -83,10 +83,10 @@ async def send_new_assignment(
     subject = schedule.subject or ""
     location = schedule.location or ""
 
-    subject_line = _get_translated_text(locale, "notification-subject-line", subject=subject) if subject else ""
-    location_line = _get_translated_text(locale, "notification-location-line", location=location) if location else ""
+    subject_line = get_translated_text(locale, "notification-subject-line", subject=subject) if subject else ""
+    location_line = get_translated_text(locale, "notification-location-line", location=location) if location else ""
 
-    text = _get_translated_text(
+    text = get_translated_text(
         locale,
         "new-assignment",
         title=schedule.title,

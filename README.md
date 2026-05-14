@@ -29,6 +29,24 @@ docker compose up --build
 
 This starts PostgreSQL and the bot. Tables are created automatically on first run.
 
+### Running a test bot
+
+To test changes with a separate bot (different token), create `.env.test` with test credentials:
+
+```bash
+cp .env.example .env.test
+# Edit .env.test with your test bot token and test DB credentials
+```
+
+Run the test bot:
+```bash
+docker compose -f docker-compose.test.yml up --build
+```
+
+This uses a separate compose file with its own Postgres volume (`postgres_data_test`), so test data never touches production. Both bots can run simultaneously.
+
+> **Note:** `.env.test` is git-ignored since it contains sensitive data. Each developer creates their own.
+
 ### Running without Docker
 
 1. Install dependencies:
@@ -55,7 +73,7 @@ The project uses GitHub Actions to deploy to a server via SSH. Pushing to the `d
 
 2. Clone the repository:
 ```bash
-git clone https://github.com/DmytroKhylko/schedule-your-lessons.git /opt/schedule-bot
+git clone https://github.com/DmytroKhylko/schedule-your-lessons-telegram-bot.git /opt/schedule-bot
 cd /opt/schedule-bot
 git checkout deployment
 ```

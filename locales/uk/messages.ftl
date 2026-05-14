@@ -1,3 +1,34 @@
+## Команди бота
+
+cmd-start-description = Головне меню
+cmd-schedule-description = Мій розклад
+cmd-settings-description = Налаштування
+cmd-help-description = Допомога
+cmd-create-description = Створити розклад
+cmd-requests-description = Запити на приєднання
+cmd-users-description = Список користувачів
+
+## Довідка
+
+help-message =
+    ℹ️ Доступні команди:
+
+    /start — Головне меню
+    /schedule — Переглянути розклад
+    /settings — Налаштування
+    /help — Ця довідка
+
+help-message-admin =
+    ℹ️ Доступні команди:
+
+    /start — Головне меню
+    /schedule — Переглянути розклад
+    /create — Створити розклад
+    /requests — Запити на приєднання
+    /users — Список користувачів
+    /settings — Налаштування
+    /help — Ця довідка
+
 ## Вітання та статуси
 
 welcome-new =
