@@ -3,6 +3,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import Update
 from aiogram_i18n import I18nMiddleware
 from aiogram_i18n.cores import FluentRuntimeCore
 from aiogram_i18n.managers import BaseManager
@@ -11,6 +12,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from config import settings
 from logging_config import setup_logging
 from middlewares.logging import LoggingMiddleware
+from src.bot.commands import set_default_commands
 from src.bot.handlers import admin_schedules, admin_users, schedule_view
 from src.bot.handlers import settings as settings_handler
 from src.bot.handlers import start
@@ -28,7 +30,16 @@ class UserLocaleManager(BaseManager):
     async def get_locale(self, event, current_user: User | None = None, **kwargs) -> str:
         if current_user:
             return current_user.language_code
-        from_user = getattr(event, "from_user", None)
+        from_user = None
+        if isinstance(event, Update):
+            if event.message:
+                from_user = event.message.from_user
+            elif event.callback_query:
+                from_user = event.callback_query.from_user
+            elif event.inline_query:
+                from_user = event.inline_query.from_user
+        else:
+            from_user = getattr(event, "from_user", None)
         if from_user and from_user.language_code:
             return "uk" if from_user.language_code.startswith("uk") else "en"
         return settings.default_locale
@@ -64,8 +75,8 @@ async def main() -> None:
         manager=UserLocaleManager(),
     )
 
-    dp.update.middleware(DbSessionMiddleware(session_factory))
-    dp.update.middleware(UserContextMiddleware())
+    dp.update.outer_middleware(DbSessionMiddleware(session_factory))
+    dp.update.outer_middleware(UserContextMiddleware())
     dp.message.middleware(LoggingMiddleware())
     dp.callback_query.middleware(LoggingMiddleware())
     i18n_middleware.setup(dp)
@@ -76,6 +87,7 @@ async def main() -> None:
     dp.include_router(schedule_view.router)
     dp.include_router(settings_handler.router)
 
+    await set_default_commands(bot)
     reminder_scheduler.start()
     logger.info("Bot starting")
 

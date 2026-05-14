@@ -1,3 +1,34 @@
+## Bot commands
+
+cmd-start-description = Main menu
+cmd-schedule-description = My schedule
+cmd-settings-description = Settings
+cmd-help-description = Help
+cmd-create-description = Create schedule
+cmd-requests-description = Join requests
+cmd-users-description = Users list
+
+## Help
+
+help-message =
+    ℹ️ Available commands:
+
+    /start — Main menu
+    /schedule — View your schedule
+    /settings — Settings
+    /help — This help message
+
+help-message-admin =
+    ℹ️ Available commands:
+
+    /start — Main menu
+    /schedule — View your schedule
+    /create — Create schedule
+    /requests — Join requests
+    /users — Users list
+    /settings — Settings
+    /help — This help message
+
 ## Greeting and statuses
 
 welcome-new =

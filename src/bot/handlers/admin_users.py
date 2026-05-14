@@ -9,6 +9,7 @@ from src.bot.keyboards.admin_keyboards import AdminUserApprovalCallback, build_u
 from src.bot.keyboards.common_keyboards import build_admin_main_menu
 from src.domain.enums import RoleType
 from src.models.user import User
+from src.notifications.sender import get_translated_text
 from src.repositories.role_repository import RoleRepository
 from src.repositories.user_repository import UserRepository
 from src.services.user_service import UserService
@@ -34,13 +35,16 @@ async def handle_user_approval(
         await callback.answer()
         return
 
+    user_locale = target_user.language_code or "uk"
+
     if callback_data.action == "user":
         await user_service.approve(target_user, RoleType.USER)
         await callback.message.edit_text(
             i18n.get("admin-approved-user", full_name=target_user.full_name)
         )
         try:
-            await bot.send_message(target_user.telegram_id, i18n.get("user-approved-as-user"))
+            text = get_translated_text(user_locale, "user-approved-as-user")
+            await bot.send_message(target_user.telegram_id, text)
         except Exception:
             pass
 
@@ -50,7 +54,8 @@ async def handle_user_approval(
             i18n.get("admin-approved-teacher", full_name=target_user.full_name)
         )
         try:
-            await bot.send_message(target_user.telegram_id, i18n.get("user-approved-as-teacher"))
+            text = get_translated_text(user_locale, "user-approved-as-teacher")
+            await bot.send_message(target_user.telegram_id, text)
         except Exception:
             pass
 
@@ -60,7 +65,8 @@ async def handle_user_approval(
             i18n.get("admin-rejected-user", full_name=target_user.full_name)
         )
         try:
-            await bot.send_message(target_user.telegram_id, i18n.get("user-rejected"))
+            text = get_translated_text(user_locale, "user-rejected")
+            await bot.send_message(target_user.telegram_id, text)
         except Exception:
             pass
 
