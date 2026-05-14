@@ -23,7 +23,9 @@ class Settings(BaseSettings):
 
     @field_validator("admin_telegram_ids", mode="before")
     @classmethod
-    def parse_admin_telegram_ids(cls, value: str | list) -> list[int]:
+    def parse_admin_telegram_ids(cls, value: str | int | list) -> list[int]:
+        if isinstance(value, int):
+            return [value]
         if isinstance(value, str):
             return [int(x.strip()) for x in value.split(",") if x.strip()]
         return value

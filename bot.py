@@ -16,6 +16,7 @@ from src.bot.handlers import settings as settings_handler
 from src.bot.handlers import start
 from src.bot.middlewares.db_session import DbSessionMiddleware
 from src.bot.middlewares.user_context import UserContextMiddleware
+from src.models import Base
 from src.models.user import User
 from src.notifications.scheduler import ReminderScheduler
 
@@ -24,8 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class UserLocaleManager(BaseManager):
-    async def get_locale(self, event, data) -> str:
-        current_user: User | None = data.get("current_user")
+    async def get_locale(self, event, current_user: User | None = None, **kwargs) -> str:
         if current_user:
             return current_user.language_code
         from_user = getattr(event, "from_user", None)
@@ -33,23 +33,17 @@ class UserLocaleManager(BaseManager):
             return "uk" if from_user.language_code.startswith("uk") else "en"
         return settings.default_locale
 
-    async def set_locale(self, locale: str, event, data) -> None:
+    async def set_locale(self, locale: str, **kwargs) -> None:
         pass
 
 
-def run_migrations() -> None:
-    from alembic import command
-    from alembic.config import Config
-
-    alembic_cfg = Config("alembic.ini")
-    command.upgrade(alembic_cfg, "head")
-    logger.info("Database migrations applied")
-
-
 async def main() -> None:
-    run_migrations()
-
     engine = create_async_engine(settings.database_url, echo=False)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables ensured")
+
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
     bot = Bot(token=settings.bot_token)
