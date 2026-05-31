@@ -87,6 +87,10 @@ class ReminderScheduler:
                         if already_sent:
                             continue
 
+                        await session.refresh(schedule, attribute_names=["is_cancelled"])
+                        if schedule.is_cancelled:
+                            break
+
                         try:
                             await send_lesson_reminder(self.bot, user, schedule, occurrence_time)
                             await notification_log_repository.create(
